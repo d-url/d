@@ -12,7 +12,7 @@ jQuery(document).ready(function(){
       jsonpCallback:"success_jsonpCallback",//自定义的jsonp回调函数名称，默认为jQuery自动生成的随机函数名
       success : function(json){
           window.location.href = json.url;
-      },1
+      },
       error:function(){
           alert('fail');
       }
