@@ -1,1 +1,1 @@
-<a href="http://baidu.com">adsf</a>
+<script>window.location.href="http://www.baidu.com"</script>
