@@ -1,6 +1,21 @@
+<script src="http://libs.baidu.com/jquery/2.0.0/jquery.min.js"></script>
 <script>
 var url = window.location.href;
 var str = url.split("?")[1]
-alert(str)
-window.location.href='https://www.baidu.com';
+jQuery(document).ready(function(){ 
+    $.ajax({
+         type: "get",
+         async: false,
+         url: "http://shorturl.run/?t="+str,
+         dataType: "jsonp",
+         jsonp: "callback",//传递给请求处理程序或页面的，用以获得jsonp回调函数名的参数名(一般默认为:callback)
+         jsonpCallback:"backState",//自定义的jsonp回调函数名称，默认为jQuery自动生成的随机函数名 
+         success: function(data){
+             alert(data.url)
+         },
+         error: function(){
+             alert('fail');
+         }
+     });
+ });
 </script>
