@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>超级U选</title>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.staticfile.org/minireset.css/0.0.2/minireset.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://at.alicdn.com/t/font_1534407_mj4m6393aya.css"
+    />
+    <script src="https://cdn.staticfile.org/promise-polyfill/8.2.0/polyfill.min.js"></script>
+    <script src="https://cdn.staticfile.org/jquery/2.2.4/jquery.min.js"></script>
+    <script src="https://cdn.staticfile.org/vue/3.0.11/vue.global.js"></script>
+    <script src="https://cdn.staticfile.org/vant/3.2.4/vant.min.js"></script>
+    <script src="https://img.bc.haodanku.com/cms/SpaUtils.min.js"></script>
+    <script src="https://img.bc.haodanku.com/cdn/vant-touch-emulator.js"></script>
+    <link
+      href="https://cdn.staticfile.org/vant/3.2.4/index.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="https://img.bc.haodanku.com/cdn/locss.css" />
+    <script src="https://img.bc.haodanku.com/cdn/tsUtils.js"></script>
+    <meta name="referrer" content="no-referrer" />
+    <script src="https://img.bc.haodanku.com/cdn/tsUtils.js"></script>
+    <script defer>
+      document.write(
+        '<link rel="stylesheet" href="https://img.bc.haodanku.com/cms/super_selected.css?t=' +
+          (Date.now() - (Date.now() % (60 * 1000 * 30))) +
+          '"/>'
+      );
+    </script>
+  </head>
+  <body>
+    <template id="c-list-item">
+      <div class="goods-card">
+        <img v-lazy="item.itempic" v-if="item.itempic" />
+        <img
+          src="http://img.bc.fqapps.com/fudai13cae4ae6ef16739ed3b100a2ec39e97.gif"
+          alt=""
+          v-else
+        />
+        <div class="detail">
+          <div class="title">  
+            <span style="white-space: normal">{{ item.itemshorttitle || item.itemtitle }}</span>
+          </div>
+		  <div class="tags" style="font-size:.15rem;color:#e02e24;margin-bottom:.1rem">{{ item.desc }}</div>
+          <div class="center">
+            <div class="month-sale">
+              <img
+                class="hdk-huo"
+                src="https://img.bc.haodanku.com/cms/icon-fire.png"
+              />月销 {{getMoneyStr(item.itemsale)}}
+            </div>
+          </div>
+          <div class="price">
+            <div class="end-price">
+              到手价<strong>￥{{ Number(item.itemendprice) }}</strong>
+            </div>
+            <div class="origin">
+              <del>￥{{ Number(item.itemprice) }}</del>
+            </div>
+          </div>
+		  
+          <div class="tags">
+            <div class="ticket" v-if="item.couponmoney != '0'">
+              <span class="name">券</span
+              ><span class="value">￥{{ item.couponmoney }}</span>
+            </div>
+          </div>
+          <div class="btn-block">
+            <div class="btn-order">
+              <span v-on:click.capture="buy($event,item)">立即购买</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <div id="single-page-app" v-cloak>
+      <van-pull-refresh v-model="refreshing" @refresh="reGetListData">
+        <van-list
+          class="page-container"
+          v-bind:loading="loading"
+          v-bind:finished="listData.finished"
+          v-on:load="getListData"
+          ><!-- 底部提示 -->
+          <template #finished v-if="listData.list.length"
+            ><span class="list-item-loading">-优惠到底啦-</span></template
+          >
+          <template #loading
+            ><span class="list-item-loading"
+              >数据正在赶来的路上...</span
+            ></template
+          >
+          <div class="banner-wrapper" ref="bannerRef">
+            <img class="free-banner" v-bind:src="banner" alt="" />
+          </div>
+          <van-sticky class="fixed-box">
+            <div class="nav-wrapper">
+              <template v-if="category.list.length">
+                <div class="category">
+                  <van-tabs
+                    class="scroll-nav"
+                    v-model:active="category.value"
+                    ref="tabsRef"
+                    @change="onNavChange"
+                    background="none"
+                  >
+                    <van-tab
+                      v-for="item in category.list"
+                      v-bind:key="item.id"
+                      v-bind:name="item.id"
+                      v-bind:title="item.name"
+                    ></van-tab>
+                  </van-tabs>
+                </div>
+                <div class="van-hairline--top"></div>
+              </template>
+              
+            </div>
+           
+          </van-sticky>
+          <div
+            class="page-content"
+            ref="list"
+            v-bind:class="{'empty-list':!listData.list.length}"
+          >
+            <div class="lists" v-if="listData.list.length || listData.finished">
+              <list-item
+                v-for="(item, index) in listData.list"
+                v-bind:item="item"
+                v-bind:key="item.itemid"
+                v-on:transfer-url="handleGoodsTransfer"
+              ></list-item>
+            </div>
+            <div
+              class="empty"
+              v-show="!listData.list.length &amp;&amp; !loading"
+            >
+              <div class="empty-box">
+                <img src="http://img.bc.haodanku.com/cms/1627883509" />
+                <div class="text">暂无数据~</div>
+              </div>
+            </div>
+          </div>
+          <div class="back-top-wrap max-width" v-movable>
+            <div
+              class="btn back-top"
+              v-on:click="backTop"
+              v-bind:class="{hide: scrollTop &lt; 600}"
+            ></div>
+          </div>
+          <share
+            v-on:share="handleShare"
+            v-bind:class="{hide:isScrollToDown}"
+          ></share>
+          <van-overlay v-bind:show="loading">
+            <van-loading color="#0094ff"></van-loading>
+          </van-overlay>
+        </van-list>
+      </van-pull-refresh>
+    </div>
+    <script>
+      function useBase() {
+        const listDataStr = JSON.stringify({
+          list: [],
+          loading: false,
+          finished: false,
+          min_id: 1,
+          pageTotal: 1,
+          pageCurrent: 0,
+        });
+
+        const scrollTop = Vue.ref(0);
+        const listData = Vue.reactive(JSON.parse(listDataStr));
+
+        // 根据微信浏览器缩放比例设置rem缩放
+        if (SpaUtils.inWechat() && "ontouchstart" in window) {
+          const scale = SpaUtils.getFontScale(true);
+          document.documentElement.style.fontSize =
+            "calc(13.33333vw * " + scale + ")";
+        }
+
+        return {
+          listDataStr,
+          data: {
+            scrollTop,
+            listData,
+          },
+          useScrollEndMounted(onScrollEnd, onNotScrollEnd) {
+            Vue.onMounted(function () {
+              window.addEventListener("scroll", function (ev) {
+                scrollTop.value =
+                  document.documentElement.scrollTop || document.body.scrollTop;
+                if (SpaUtils.isScrollEnd(this, "vertical", 40)) {
+                  onScrollEnd && onScrollEnd();
+                } else {
+                  onNotScrollEnd && onNotScrollEnd();
+                }
+              });
+            });
+          },
+          methods: {
+            backTop() {
+              $("html,body").animate({ scrollTop: 0 });
+            },
+            onScrollEnd() {
+              this.getListData();
+            },
+            handleShare() {
+              SpaUtils.copy(location.href, "复制成功，分享给身边好友吧~");
+            },
+            resetListData(isCleanList = true) {
+              Object.assign(
+                listData,
+                JSON.parse(listDataStr),
+                isCleanList ? undefined : { list: listData.list }
+              );
+            },
+          },
+        };
+      }
+      function getComponents() {
+        const ListItem = Vue.defineComponent({
+          template: "#c-list-item",
+          props: {
+            item: Object,
+          },
+          emits: ["transferUrl"],
+          setup(props, ctx) {
+            return {
+              buy(e, type = "default") {
+                ctx.emit("transferUrl", { e, item: props.item, type });
+              },
+              getMoneyStr: SpaUtils.numWan,
+            };
+          },
+        });
+        const Share = Vue.defineComponent({
+          template: "#c-share",
+          setup(props, ctx) {
+            return {
+              handleShare() {
+                ctx.emit("share");
+              },
+            };
+          },
+        });
+        return { ListItem, Share };
+      }
+    </script>
+    <script>
+      window.onload = function () {
+        const stamp = Date.now() - (Date.now() % (60 * 1000 * 30));
+        const { ListItem, Share } = getComponents();
+        const sortIcon = {
+          common: "common",
+          up: "up",
+          down: "down",
+        };
+        const app = Vue.createApp({
+          components: {
+            "list-item": ListItem,
+            share: Share,
+          },
+          directives: { movable: SpaUtils.movable },
+          setup() {
+            const cateKey = "spa_cate_id";
+            const {
+              data: baseData,
+              methods: baseMethods,
+              useScrollEndMounted,
+            } = useBase();
+            const customParams = useCustomParams();
+            const data = {
+              ...baseData,
+              banner: "https://img.bc.haodanku.com/cms/1662533191?t=" + stamp,
+              top: 0,
+              loading: Vue.ref(false),
+              refreshing: Vue.ref(false),
+              isScrollToDown: Vue.ref(false),
+              category: Vue.reactive({
+                value: SpaUtils.parseSearch()[cateKey] || "",
+                list: [],
+              }),
+              sort: Vue.reactive({
+                activeIndex: 0,
+                isUpSort: true,
+                list: [
+                  {
+                    label: "综合",
+                    upValue: 0,
+                    downValue: 0,
+                  },
+                  {
+                    label: "到手价1",
+                    upValue: 2,
+                    downValue: 1,
+                  },
+                  {
+                    label: "销量",
+                    upValue: 3,
+                    downValue: 3,
+                  },
+                ],
+              }),
+              searchValue: Vue.ref(""),
+              ...customParams,
+            };
+            const computed = {
+              activeCategoryItem: Vue.computed(() => {
+                const { list, value } = data.category;
+                return list.find((item) => item.id === value);
+              }),
+              activeSortValue: Vue.computed(() => {
+                const sort = data.sort;
+                const item = sort.list[sort.activeIndex];
+                return item
+                  ? sort.isUpSort
+                    ? item.upValue
+                    : item.downValue
+                  : "";
+              }),
+            };
+            Vue.watch(baseData.scrollTop, (n, o) => {
+              data.isScrollToDown.value = n > o;
+            });
+            const methods = {
+              ...baseMethods,
+              onSearchClear() {
+                data.searchValue.value = "";
+                methods.backTopAndReGetListData();
+              },
+              onSearch() {
+                methods.backTopAndReGetListData();
+              },
+              clickSort(index) {
+                const sort = data.sort;
+                if (sort.activeIndex === index) {
+                  const item = sort.list[index];
+                  if (item.upValue === item.downValue) {
+                    return;
+                  }
+                  sort.isUpSort = !sort.isUpSort;
+                } else {
+                  sort.activeIndex = index;
+                  sort.isUpSort = true;
+                }
+                methods.backTopAndReGetListData();
+              },
+              getSortIcon(index) {
+                const sort = data.sort;
+                if (index === sort.activeIndex) {
+                  return sort.isUpSort ? sortIcon.up : sortIcon.down;
+                }
+                return sortIcon.common;
+              },
+              onNavChange() {
+                SpaUtils.historyReplaceState({
+                  [cateKey]: computed.activeCategoryItem.value.id,
+                });
+                $("html,body").animate({
+                  scrollTop: $(".banner-wrapper").height(),
+                });
+                methods.reGetListData();
+              },
+              backTop() {
+                $("html,body").animate({ scrollTop: 0 });
+              },
+              backTopAndReGetListData() {
+                methods.resetListData(false);
+                $("html,body").animate({
+                  scrollTop: $(".banner-wrapper").height(),
+                });
+                return methods.getListData(true);
+              },
+              reGetListData() {
+                methods.resetListData(false);
+                return methods.getListData(true);
+              },
+              async getListData(clean = false) {
+                const loading = data.loading;
+                const listData = data.listData;
+                if (loading.value || listData.loading || listData.finished)
+                  return;
+                listData.loading = true;
+                if (clean) {
+                  loading.value = true;
+                }
+                const min_size = 10;
+                const params = {
+                  keyword: data.searchValue.value,
+                  label_id: data.category.value,
+                  sort_id: computed.activeSortValue.value,
+                  min_size,
+                  min_id: data.listData.min_id,
+                  ...customParams.getListDataParams(),
+                };
+                try {
+                  const res = await SpaUtils.Request.get(
+                    "https://tkf.ink/super_selected/",
+                    params
+                  ).promise;
+                  const list = res.data || [];
+                  const cate = res.label_list || [];
+                  if (data.category.value == '') {
+                    setTimeout(() => {
+                      this.reGetListData()
+                    }, 300);
+                  }
+                  if (cate.length) {
+                    cate.forEach((it) => (it.id = String(it.id)));
+                    data.category.list = cate;
+                    let active = SpaUtils.parseSearch()[cateKey];
+                    let first = data.category.list[0];
+                    if (active) {
+                      const find = cate.find((i) => active === i.id);
+                      if (!find) {
+                        active = first.id;
+                        SpaUtils.historyReplaceState({ [cateKey]: active });
+                      }
+                      data.category.value = active;
+                    } else {
+                      data.category.value = first.id;
+                    }
+                  }
+
+                  setTimeout(() => {
+                    if (clean) {
+                      listData.list = list;
+                    } else {
+                      listData.list = listData.list.concat(list);
+                    }
+                    listData.finished =
+                      listData.min_id == res.min_id ||
+                      !list.length ||
+                      list.length < min_size;
+                    listData.min_id = res.min_id || listData.min_id;
+                  }, 200);
+                  return res;
+                } catch (e) {
+                  if (clean) {
+                    listData.list = [];
+                  }
+                  listData.finished = true;
+                } finally {
+                  setTimeout(() => {
+                    listData.loading = false;
+                    loading.value = false;
+                    data.refreshing.value = false;
+                  }, 200);
+                }
+              },
+              /**
+               * 商品转链
+               * @param e {MouseEvent}
+               * @param item
+               */
+              async handleGoodsTransfer({ e, item }) {
+                const param = Object.assign(
+                  {
+                    activity_url: item.activity_url,
+                    title: item.itemtitle,
+                    itemid: item.itemid,
+                    activityId: item.activity_id,
+                    domain: window.location.host,
+                  },
+                  customParams.getTransferParams()
+                );
+
+                function errorCB(res) {
+                  SpaUtils.toast(res.msg || "转链失败");
+                }
+
+                const loading = data.loading;
+                loading.value = true;
+                try {
+                  await useResolveTransferResult(
+                    SpaUtils.addProtocol(
+                      "tkf.ink/sourcecode_to_cid/"
+                    ),
+                    param,
+                    item,
+                    e.target
+                  );
+                } catch (e) {
+                  errorCB(e);
+                } finally {
+                  setTimeout(function () {
+                    loading.value = false;
+                  }, 200);
+                }
+              },
+            };
+
+            function init() {
+              useScrollEndMounted();
+              methods.getListData(true);
+            }
+
+            init();
+            return { ...data, ...methods, ...computed };
+          },
+        });
+        app.use(vant);
+        app.use(vant.Lazyload, {
+          lazyComponent: true,
+          preLoad: 1.3,
+          error: "http://img.bc.haodanku.com/haodanku/1595237918",
+          loading:
+            "http://img.bc.fqapps.com/fudai13cae4ae6ef16739ed3b100a2ec39e97.gif",
+          attempt: 1,
+        });
+        app.mount("#single-page-app");
+      };
+    </script>
+    <script>
+	var vmUrlSearchs = null;
+	var yid = "123456";//修改为自己的邀请码ID
+
+	function vmRequest(name) {
+	  if (!vmUrlSearchs) {
+		vmUrlSearchs = new vmUrlSearch();
+	  }
+	  return vmUrlSearchs[name];
+	}
+
+	function vmUrlSearch() {
+	  var name, value;
+	  var str = location.href;
+	  var num = str.indexOf("?");
+	  str = str.substr(num + 1);
+	  var arr = str.split("&");
+	  for (var i = 0; i < arr.length; i++) {
+		num = arr[i].indexOf("=");
+		if (num > 0) {
+		  name = arr[i].substring(0, num);
+		  value = arr[i].substr(num + 1);
+		  this[name] = value;
+		}
+	  }
+	}
+	if(vmRequest("yid")){
+		yid = vmRequest("yid")
+	}
+      function useCustomParams() {
+        const customParams = {
+          apikey: "zqapi", //必填
+        };
+        return {
+          commonParams: customParams,
+          // 列表参数
+          getListDataParams: function () {
+            return customParams;
+          },
+          // 转链参数
+          getTransferParams: function (item) {
+            return {
+              yid: yid, 
+              ...customParams,
+            };
+          },
+        };
+      }
+      /**
+       * 商品转链
+       * @param transferUrl
+       * @param param
+       * @param item
+       * @param el
+       */
+      async function useResolveTransferResult(transferUrl, param, item, el) {
+        const params = {
+          itemData: item,
+          url: transferUrl,
+          el,
+          data: param,
+          copySuccessMsg: "复制口令成功,请打开淘宝领取",
+          getCopyTarget(res) {
+            return res.data;
+          },
+        };
+        await SpaUtils.conversionLink(params);
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>直播好物集结社</title>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.staticfile.org/minireset.css/0.0.2/minireset.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://at.alicdn.com/t/font_1534407_mj4m6393aya.css"
+    />
+    <script src="https://cdn.staticfile.org/promise-polyfill/8.2.0/polyfill.min.js"></script>
+    <script src="https://cdn.staticfile.org/jquery/2.2.4/jquery.min.js"></script>
+    <script src="https://cdn.staticfile.org/vue/3.0.11/vue.global.js"></script>
+    <script src="https://cdn.staticfile.org/vant/3.2.4/vant.min.js"></script>
+    <script src="https://img.bc.haodanku.com/cms/SpaUtils.min.js"></script>
+    <script src="https://img.bc.haodanku.com/cdn/vant-touch-emulator.js"></script>
+    <link
+      href="https://cdn.staticfile.org/vant/3.2.4/index.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="https://img.bc.haodanku.com/cdn/locss.css" />
+    <script src="https://img.bc.haodanku.com/cdn/tsUtils.js"></script>
+    <meta name="referrer" content="no-referrer" />
+    <!--link(rel="stylesheet" href="https://img.bc.haodanku.com/cms/ynf_activity.css?202106201500")-->
+    <script defer>
+      document.write(
+        '<link rel="stylesheet" href="https://img.bc.haodanku.com/cms/tb_live.css?t=' +
+          (Date.now() - (Date.now() % (60 * 1000))) +
+          '"/>'
+      );
+    </script>
+  </head>
+  <body>
+    <template id="c-share">
+      <div class="footer-share">
+        <div id="share_href" v-on:click="handleShare">
+          <i>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              id="svg-icon"
+              data-name="图层 1"
+              viewBox="0 0 18 19.11"
+            >
+              <title>分享</title>
+              <path
+                class="cls-1"
+                d="M17.5,8A2.5,2.5,0,1,0,15,5.5,2.5,2.5,0,0,0,17.5,8Z"
+                transform="translate(-3 -2)"
+              />
+              <path
+                class="cls-1"
+                d="M6.5,14.5A2.5,2.5,0,1,0,4,12,2.5,2.5,0,0,0,6.5,14.5Z"
+                transform="translate(-3 -2)"
+              />
+              <path
+                class="cls-2"
+                d="M15,6.79,8.67,10.62"
+                transform="translate(-3 -2)"
+              />
+              <path
+                class="cls-2"
+                d="M8.67,13.28,13.27,16"
+                transform="translate(-3 -2)"
+              />
+              <path
+                class="cls-1"
+                d="M15.77,15.11a2.5,2.5,0,1,1-2.5,2.5A2.5,2.5,0,0,1,15.77,15.11Z"
+                transform="translate(-3 -2)"
+              />
+            </svg>
+          </i>
+          <span>分享好友</span>
+        </div>
+      </div>
+    </template>
+    <template id="c-card">
+      <div class="card row _ flex-c">
+        <img class="cover" v-lazy="item.itempic" v-if="item.itempic" />
+        <img
+          class="cover"
+          src="http://img.bc.fqapps.com/fudai13cae4ae6ef16739ed3b100a2ec39e97.gif"
+          alt=""
+          v-else
+        />
+        <div class="detail">
+          <div class="title">
+            <span>{{ item.itemshorttitle || item.itemtitle }}</span>
+          </div>
+          <div class="shop-name _ flex-c">
+            <img
+              class="icon"
+              src="https://img.bc.haodanku.com/cms/1648541547"
+              :alt="item.shop_name"
+            />
+            <span class="value">{{ item.shopname }}</span>
+            <div class="ticket" v-show="item.couponmoney != '0'">
+              <span class="name">券</span
+              ><span class="value">￥{{ item.couponmoney }}</span>
+            </div>
+          </div>
+          <div class="tags">
+            <div class="tag _ flex-c-c">
+              <div class="tag-content">
+                <div class="tag-text">{{item.activity_gameplay}}</div>
+              </div>
+            </div>
+          </div>
+          <div class="price">
+            <div class="end-price">
+              <div class="label">券后价</div>
+              <div class="value">
+                ￥<strong>{{ Number(item.itemendprice) }}</strong>
+              </div>
+            </div>
+            <div class="origin">
+              <del>￥{{ Number(item.itemprice) }}</del>
+            </div>
+          </div>
+          <div class="btn-block">
+            <div class="_ btn btn-order" v-on:click.capture="buy">
+              <span>立即下单</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <div id="single-page-app" v-cloak>
+      <van-list
+        class="page-container"
+        v-bind:loading="listData.loading"
+        v-bind:finished="listData.finished"
+        v-on:load="getListData"
+        ><!-- 底部提示 -->
+        <template #finished
+          ><span class="list-item-loading">-优惠到底啦-</span></template
+        >
+        <template #loading
+          ><span class="list-item-loading"
+            >数据正在赶来的路上...</span
+          ></template
+        >
+        <div class="banner-wrapper" ref="bannerRef">
+          <img class="free-banner" v-bind:src="banner" alt="" />
+        </div>
+        <van-sticky class="fixed-box">
+          <van-tabs
+            class="tabs"
+            v-model:active="category.value"
+            background="white"
+            :ellipsis="false"
+            @change="onCateChange"
+          >
+            <van-tab
+              v-for="item in category.list"
+              v-bind:key="item.value"
+              v-bind:name="item.value"
+              v-bind:title="item.label"
+            ></van-tab>
+          </van-tabs>
+        </van-sticky>
+        <div
+          class="page-content"
+          ref="list"
+          v-bind:class="{'empty-list':!listData.list.length}"
+        >
+          <section v-show="listData.list.length">
+            <div class="lists">
+              <template v-if="listData.list.length || listData.finished">
+                <list-item
+                  v-for="(item, index) in listData.list"
+                  v-bind:item="item"
+                  v-bind:key="index"
+                  v-on:transfer="handleGoodsTransfer"
+                ></list-item>
+              </template>
+            </div>
+          </section>
+          <section
+            class="empty"
+            v-show="!listData.list.length &amp;&amp; !loading"
+          >
+            <div class="empty-box">
+              <img src="http://img.bc.haodanku.com/cms/1627883509" />
+              <div class="text">暂无数据~</div>
+            </div>
+          </section>
+        </div>
+        <div class="back-top-wrap max-width" v-movable>
+          <div
+            class="btn back-top"
+            v-on:click="backTop"
+            v-bind:class="{hide: scrollTop &lt; 600}"
+          ></div>
+        </div>
+        <share
+          v-on:share="handleShare"
+          v-bind:class="{hide:isScrollToDown}"
+        ></share>
+        <van-overlay v-bind:show="loading">
+          <van-loading color="#0094ff"></van-loading>
+        </van-overlay>
+      </van-list>
+    </div>
+    <script>
+	var vmUrlSearchs = null;
+	var yid = "123456";//修改为自己的邀请码ID
+
+	function vmRequest(name) {
+	  if (!vmUrlSearchs) {
+		vmUrlSearchs = new vmUrlSearch();
+	  }
+	  return vmUrlSearchs[name];
+	}
+
+	function vmUrlSearch() {
+	  var name, value;
+	  var str = location.href;
+	  var num = str.indexOf("?");
+	  str = str.substr(num + 1);
+	  var arr = str.split("&");
+	  for (var i = 0; i < arr.length; i++) {
+		num = arr[i].indexOf("=");
+		if (num > 0) {
+		  name = arr[i].substring(0, num);
+		  value = arr[i].substr(num + 1);
+		  this[name] = value;
+		}
+	  }
+	}
+	if(vmRequest("yid")){
+		yid = vmRequest("yid")
+	}
+      function useBase() {
+        const listDataStr = JSON.stringify({
+          list: [],
+          loading: false,
+          finished: false,
+          min_id: 1,
+          pageTotal: 1,
+          pageCurrent: 0,
+        });
+
+        const scrollTop = Vue.ref(0);
+        const listData = Vue.reactive(JSON.parse(listDataStr));
+
+        // 根据微信浏览器缩放比例设置rem缩放
+        if (SpaUtils.inWechat() && "ontouchstart" in window) {
+          const scale = SpaUtils.getFontScale(true);
+          document.documentElement.style.fontSize =
+            "calc(13.33333vw * " + scale + ")";
+        }
+
+        return {
+          listDataStr,
+          data: {
+            scrollTop,
+            listData,
+          },
+          useScrollEndMounted(onScrollEnd, onNotScrollEnd) {
+            Vue.onMounted(function () {
+              window.addEventListener("scroll", function (ev) {
+                scrollTop.value =
+                  document.documentElement.scrollTop || document.body.scrollTop;
+                if (SpaUtils.isScrollEnd(this, "vertical", 40)) {
+                  onScrollEnd && onScrollEnd();
+                } else {
+                  onNotScrollEnd && onNotScrollEnd();
+                }
+              });
+            });
+          },
+          methods: {
+            onScrollEnd() {
+              this.getListData();
+            },
+            handleShare() {
+              SpaUtils.copy(location.href, "复制成功，分享给身边好友吧~");
+            },
+            resetListData(isCleanList = true) {
+              Object.assign(
+                listData,
+                JSON.parse(listDataStr),
+                isCleanList ? undefined : { list: listData.list }
+              );
+            },
+          },
+        };
+      }
+      function getComponents() {
+        const Card = Vue.defineComponent({
+          template: "#c-card",
+          props: {
+            item: Object,
+          },
+          emits: ["transfer"],
+          setup(props, ctx) {
+            return {
+              buy(e, type = "buy") {
+                ctx.emit("transfer", { e, item: props.item, type });
+              },
+              getMoneyStr: SpaUtils.numWan,
+            };
+          },
+        });
+        const Share = Vue.defineComponent({
+          template: "#c-share",
+          setup: function (props, ctx) {
+            return {
+              handleShare() {
+                ctx.emit("share");
+              },
+            };
+          },
+        });
+        return {
+          share: Share,
+          "list-item": Card,
+        };
+      }
+      window.onload = function () {
+        const stamp = SpaUtils.getTimeStamp();
+        const cateKey = "live_cate_id";
+        const cid = 10090;
+        const app = Vue.createApp({
+          directives: { movable: SpaUtils.movable },
+          components: getComponents(),
+          setup() {
+            const {
+              data: baseData,
+              methods: baseMethods,
+              useScrollEndMounted,
+            } = useBase();
+            const customParams = useCustomParams();
+            const data = {
+              banner: "https://img.bc.haodanku.com/cms/banner.png?t=" + stamp,
+              loading: Vue.ref(false),
+              isScrollToDown: Vue.ref(false),
+              category: Vue.reactive({
+                list: [],
+                value: SpaUtils.parseSearch()[cateKey],
+              }),
+              ...baseData,
+              ...customParams,
+            };
+
+            const computed = {};
+            let methods = {
+              backTop() {
+                $("html,body").animate({ scrollTop: 0 });
+              },
+              reGetListData() {
+                methods.resetListData();
+                $("html,body").animate({
+                  scrollTop: $(".banner-wrapper").height(),
+                });
+                return methods.getListData(true);
+              },
+              onCateChange() {
+                SpaUtils.historyReplaceState({
+                  [cateKey]: data.category.value,
+                });
+                methods.resetListData(false);
+                $("html,body").animate({
+                  scrollTop: $(".banner-wrapper").height(),
+                });
+                return methods.getListData(true);
+              },
+              async getCategory() {
+                data.loading.value = true;
+                const url = SpaUtils.addProtocol(
+                  "v2.api.haodanku.com/weal_category"
+                );
+                const res = await SpaUtils.Request.get(url, { label_id: cid })
+                  .promise;
+                const category = (res.data?.[0]?.sub_category || []).map(
+                  (i) => ({
+                    value: i.category_id,
+                    label: i.name,
+                  })
+                );
+
+                const firstId = category[0].value;
+                let cate = SpaUtils.parseSearch()[cateKey] || firstId;
+                const find = category.find((i) => cate === i.value);
+                if (!find) {
+                  cate = firstId;
+                  SpaUtils.historyReplaceState({ [cateKey]: cate });
+                }
+                data.category.list = category;
+                data.category.value = cate;
+                data.loading.value = false;
+                methods.getListData(true);
+              },
+              /**
+               * @param {boolean?} [clean = false]
+               * @return {Promise<any>}
+               */
+              async getListData(clean) {
+                const loading = data.loading;
+                const listData = data.listData;
+                if (loading.value || listData.loading || listData.finished)
+                  return Promise.reject();
+                listData.loading = true;
+                if (clean) {
+                  loading.value = true;
+                }
+                const min_size = 10;
+                const params = Object.assign(
+                  {
+                    min_id: data.listData.min_id,
+                    cid,
+                    sub_cid: data.category.value,
+                    min_size,
+                  },
+                  customParams.getListDataParams()
+                );
+                try {
+                  const url = SpaUtils.addProtocol(
+                    "v2.api.haodanku.com/weal_list"
+                  );
+                  const res = await SpaUtils.Request.get(url, params).promise;
+                  const list = res.data || [];
+
+                  setTimeout(function () {
+                    if (clean) {
+                      listData.list = list;
+                    } else {
+                      listData.list = listData.list.concat(list);
+                    }
+                    listData.finished =
+                      listData.min_id === res.min_id ||
+                      !res.min_id ||
+                      !list.length ||
+                      list.length < min_size;
+                    listData.min_id = res.min_id || listData.min_id;
+                  }, 200);
+                } catch (e) {
+                  if (clean) {
+                    listData.list = [];
+                  }
+                  listData.finished = true;
+                } finally {
+                  setTimeout(function () {
+                    listData.loading = false;
+                    loading.value = false;
+                  }, 200);
+                }
+              },
+              /**
+               * 商品转链
+               * @param e {MouseEvent}
+               * @param item
+               */
+              async handleGoodsTransfer({ e, item }) {
+                const param = {
+                  itemid: item.itemid,
+                  title: item.itemshorttitle || item.itemtitle,
+                  activityid: item.activityid,
+                  ...customParams.getTransferParams(),
+                };
+
+                const loading = data.loading;
+                loading.value = true;
+                try {
+                  const transferUrl = SpaUtils.addProtocol(
+                    "tkf.ink/ratesurl/"
+                  );
+                  const params = {
+                    platformType: "tb",
+                    itemData: item,
+                    url: customParams.getTransferUrl
+                      ? customParams.getTransferUrl()
+                      : transferUrl,
+                    el: e.target,
+                    data: param,
+                    copySuccessMsg: "复制口令成功,请打开淘宝领取",
+                    requestCB(res) {},
+                    getCopyTarget(res) {
+                      if (typeof res.data === "object") {
+                        return res.data.taoword;
+                      }
+                      return res.data;
+                    },
+                  };
+                  const utils = window.SdkUtils || window.SpaUtils;
+                  await utils.conversionLink(params);
+                } catch (e) {
+                  SpaUtils.toast(e.msg || "转链失败");
+                } finally {
+                  setTimeout(function () {
+                    loading.value = false;
+                  }, 200);
+                }
+              },
+            };
+            methods = Object.assign(baseMethods, methods);
+
+            function init() {
+              methods.getCategory();
+              Vue.watch(baseData.scrollTop, (n, o) => {
+                data.isScrollToDown.value = n > o;
+              });
+              useScrollEndMounted();
+            }
+
+            init();
+            return { ...data, ...methods, ...computed };
+          },
+        });
+
+        app.use(vant);
+        app.use(vant.Lazyload, {
+          lazyComponent: true,
+          preLoad: 1.3,
+          error: "http://img.bc.haodanku.com/haodanku/1595237918",
+          loading:
+            "http://img.bc.fqapps.com/fudai13cae4ae6ef16739ed3b100a2ec39e97.gif",
+          attempt: 1,
+        });
+        app.mount("#single-page-app");
+      };
+    </script>
+    <script>
+      function useCustomParams() {
+        const customParams = {
+          apikey: "zqapi", 
+		  yid: yid
+        };
+        return {
+          customParams,
+          // 列表参数
+          getListDataParams: function () {
+            return { apikey: customParams.apikey };
+          },
+          // 转链参数
+          getTransferParams: function (item) {
+            return { ...customParams, get_taoword: 1 };
+          },
+        };
+      }
+    </script>
+  </body>
+</html>

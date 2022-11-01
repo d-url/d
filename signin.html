@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="screen-orientation" content="portrait">
+  <meta name="x5-orientation" content="portrait">
+  <meta name="full-screen" content="yes">
+  <meta name="x5-fullscreen" content="true">
+  <meta name="browsermode" content="application">
+  <meta name="x5-page-mode" content="app">
+  <meta name="msapplication-tap-highlight" content="no">
+  <meta content="telephone=no" name="format-detection">
+  <title>红包特价专场</title>
+  <link rel="stylesheet" href="//at.alicdn.com/t/font_1534407_5zmyvxx3vxs.css">
+  <script>
+  document.write("<link rel=\"stylesheet\" href=\"https://img.bc.haodanku.com/cms/signin.css?t=" + (Date.now() - Date.now() % (60 * 1000)) + "\"/>");
+  </script>
+</head>
+
+<body>
+<div id="app" v-cloak>
+  <template v-if="isexplain && issource">
+    <div class="main">
+      <!--<div class="banenr" v-on:click="openDirect">
+        <img src="http://img.bc.haodanku.com/cms/1627984833" alt="">
+      </div>-->
+      <div class="step">
+        <img src="https://img.bc.haodanku.com/cms/1629341253" alt="">
+        <div class="step-content">
+          <div class="title">玩法概况</div>
+          <ul>
+            <li v-for="(item,index) in help_info">
+              <span class="top-num">{{index + 1}}</span>
+              <span class="text">{{item}}</span>
+            </li>
+          </ul>
+          <div class="btn-block">
+            <div class="btn to-sign-in" v-on:click="toSignIn"><span>前往签到</span> <i class="iconfont hdk-xiangyou"></i>
+            </div>
+            <div class="btn view-direct" v-on:click="openDirect"><span>查看图文教程</span> <i
+              class="iconfont hdk-xiangyou"></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="list-wrapper">
+      <!--<h6>签到红包抵扣专区</h6>-->
+      
+      <div class="newtop">
+        <div class="search">
+          <div class="search-box">
+            <i class="search-icon"></i>
+            <input type="text" v-model="keyword" v-on:blur="myblur" v-on:focus="myfocus"
+                   v-on:keyup.enter="handleSearch"
+                   placeholder="输入商品名称">
+          </div>
+          <span class="search-btn" v-on:click="handleSearch">搜索</span>
+        </div>
+        <div class="sort">
+          <ul class="sort-list">
+            <li v-for="item in fristOrderSort" v-bind:class="{'sort-active': item.number == sortNumber}"
+                v-on:click="handleSort(item)">
+              {{ item.name }}
+              <span v-show="item.min !== item.max">
+                    <i v-bind:class="{'arrow-active': item.min == sortId}"></i>
+                    <i v-bind:class="{'arrow-active': item.max == sortId}"></i>
+                  </span>
+            </li>
+          </ul>
+        </div>
+      </div>
+      
+      <ul class="shoplist" v-if="fristOrderItems.length>0">
+        <li v-for="(item,index) in fristOrderItems">
+          <img class="shop-img" v-lazy="item.itempic" v-if="item.itempic">
+          <img class="shop-img" src="http://img.bc.haodanku.com/haodanku-activity/1596092443" v-else>
+          <div class="shop-box" v-bind:class="!item.couponurl?'active':''">
+            <p class="shop-title">{{item.itemshorttitle}}</p>
+            <div class="shop-tips">
+              <img src="http://img.bc.haodanku.com/haodanku/1613978202">
+              <p>领取签到红包可再叠加抵扣！</p>
+            </div>
+            <div class="shop-tips row-2">
+              <img src="http://img.bc.haodanku.com/cms/1627703910">
+              <p>店铺：{{item.shopname}}</p>
+            </div>
+            <div class="ticket" v-if="item.couponurl"><span class="name">券</span><span
+              class="value">￥{{item.couponmoney}}</span></div>
+            <div class="shop-b">
+              <div class="shop-b-l">
+                <p class="shop-b-m"><i>券后价</i>￥{{parseFloat(item.itemendprice)}}</p>
+                <p class="shop-b-label">￥{{parseFloat(item.itemprice)}}</p>
+              </div>
+            </div>
+            
+            <span class="shop-btn shop-coupon" v-on:click="getTaocode(item,true)" v-if="item.couponurl">立即领券</span>
+            <span class="shop-btn" v-on:click="getTaocode(item)">立即抢购</span>
+          </div>
+        </li>
+      </ul>
+      <div class="combox">
+        <p class="realpic-loading" v-if="loadshow"><i class="vmIconLoad"></i><em>数据加载中...</em></p>
+        <p class="realpic-loading" v-else>数据已加载完了</p>
+      </div>
+    </div>
+    
+    <div>
+      <div class="back_top" v-if="scrollShow" v-on:click="arrowTop()"></div>
+      <div class="tokenbox tokenbox1">
+        <em class="shut" v-on:click="shutBtn"></em>
+        <span>{{taoToken}}</span>
+        <p>复制淘口令，打开手机淘宝领取</p>
+        <span class="copybtn" v-on:click="copyBtn('.copybtn')">复制淘口令</span>
+      </div>
+    </div>
+  </template>
+  
+  <div v-if="!isexplain">
+    <img src="http://img.bc.haodanku.com/haodanku-activity/1596022875" class="goback"
+         v-on:click="arrowBtn('isexplain')">
+    <img src="http://img.bc.haodanku.com/haodanku_activity/1596768292">
+  </div>
+  
+  <div v-if="!issource">
+    <img src="http://img.bc.haodanku.com/haodanku-activity/1596022875" class="goback"
+         v-on:click="arrowBtn('issource')">
+    <img src="http://img.bc.haodanku.com/haodanku-activity/1596032111" alt="">
+  </div>
+  
+  <div class="direct-img" v-show="showDirect" v-on:click="closeDirect">
+    <div class="direct-box">
+      <div class="box-header">
+        使用教程
+        <img
+          v-on:click="closeDirect"
+          class="btn-close"
+          src="http://img-haodanku-com.cdn.fudaiapp.com/FsHmpTJUJxhdJ7X8YL36ix1GduZg"
+          alt="">
+      </div>
+      <div class="box-content">
+        <img src="http://img.bc.haodanku.com/cms/1627703471?t=1" alt="">
+      </div>
+    </div>
+  </div>
+  <transition name="fade">
+    <div class="snapped-up" v-show="snappedUp.show">
+      <div class="box">
+        <div class="box-header">
+          <img
+            class="btn-close"
+            v-on:click="closeSnappedUpDialog"
+            src="http://img.bc.haodanku.com/haodanku/1596096751"
+            alt="">
+        </div>
+        <div class="box-content">
+          <div class="title">
+            复制【下单链接】打开手淘APP，<br>
+            搜索立即下单 ~
+          </div>
+          <img src="http://img.bc.haodanku.com/cms/1627701410" alt="">
+          <button class="btn copy" v-on:click="copyBtn('.copy.btn')">点击复制</button>
+        </div>
+      </div>
+    </div>
+  </transition>
+
+</div>
+<script src="https://cdn.staticfile.org/jquery/2.2.4/jquery.min.js"></script>
+<script src="https://cdn.staticfile.org/vue/2.6.10/vue.min.js"></script>
+<script src="https://cdn.staticfile.org/vue-lazyload/1.3.3/vue-lazyload.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/layer/2.3/layer.js"></script>
+<script src="https://cdn.staticfile.org/clipboard.js/2.0.4/clipboard.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/ScrollToFixed/1.0.8/jquery-scrolltofixed-min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/device.js/0.2.7/device.min.js"></script>
+<script src="https://img.bc.haodanku.com/cms/utils.v1_0_5.js"></script>
+<script>
+var vmUrlSearchs = null;
+
+function vmRequest(name) {
+  if(!vmUrlSearchs) {
+    vmUrlSearchs = new vmUrlSearch();
+  }
+  return vmUrlSearchs[name];
+}
+
+function vmUrlSearch() {
+  var name, value;
+  var str = location.href;
+  var num = str.indexOf("?");
+  str = str.substr(num + 1);
+  var arr = str.split("&");
+  for(var i = 0; i < arr.length; i++) {
+    if(num = arr[i].indexOf("=") != -1) {
+      num = arr[i].indexOf("=");
+    } else {
+      num = arr[i].indexOf("/");
+    }
+    if(num > 0) {
+      name = arr[i].substring(0, num);
+      value = arr[i].substr(num + 1);
+      this[name] = value;
+    }
+  }
+}
+
+var yid = "123456";
+if(vmRequest("yid")){
+	yid = vmRequest("yid")
+}
+
+function toast(val) {
+  layer.msg(val, {
+    time: 2000,
+    shade: 0.1,
+    shadeClose: true
+  });
+}
+
+Vue.use(VueLazyload, {
+  preLoad: 1.3,
+  error: "http://img.bc.haodanku.com/haodanku/1595237918",
+  loading: "http://img.bc.haodanku.com/haodanku-activity/1596092443",
+  attempt: 1
+});
+var app = new Vue({
+  el: "#app",
+  data: function() {
+    return {
+      showDirect: false,
+      codeId: vmRequest("code"),
+
+      fristOrderSort: [
+        {
+          name: "综合",
+          bool: true,
+          max: "",
+          min: "",
+          number: 3
+        },
+        {
+          name: "价格",
+          bool: false,
+          max: 3,
+          min: 1,
+          number: 0
+        },
+        {
+          name: "销量",
+          bool: false,
+          max: 2,
+          min: 2,
+          number: 1
+        },
+        {
+          name: "最新",
+          bool: false,
+          max: 5,
+          min: 5,
+          number: 2
+        }
+      ],
+      sortId: "",
+      sortBool: true,
+      sortNumber: 3,
+
+      fristOrderItems: [],
+      topArr: [],
+
+
+      page: 1,
+      loadmsg: true,
+      loadshow: true,
+
+      scrollShow: false,
+
+      taoToken: "",
+
+      isexplain: true,
+      issource: true,
+      locationUrl: window.location.href,
+
+      keyword: "",
+
+      sigclick: false,
+
+      playState: false,
+      vmHttp: window.location.protocol.substring(0, window.location.protocol.length - 1) != "file" ? window.location.protocol.substring(0, window.location.protocol.length - 1) : "https",
+
+      acFocus: false,
+      outerHeight: "",
+
+      // 立即抢购弹窗相关
+      snappedUp: {
+        show: false,
+        code: ""
+      },
+
+      help_info: [],
+
+      sign_info: {}
+    };
+  },
+  created: function() {
+    this.ajaxFristOrderItems(true);
+  },
+  mounted: function() {
+    this.outerHeight = $(".banenr").outerHeight(true) + $(".secret-wrapper").outerHeight(true) + $(".list-wrapper>h6").outerHeight(true) + 2;
+    this.taobaoscroll();
+  },
+  methods: {
+    toSignIn: function() {
+      if(!this.sign_info.tpwd) {
+        return;
+      }
+      copy(this.sign_info.tpwd, "复制口令成功,请打开淘宝领取");
+    },
+    arrowBtn: function(val) {
+      this[val] = !this[val];
+      this.arrowTop();
+    },
+    taobaoscroll: function() {  //滚动加载
+      var that = this;
+      window.addEventListener("scroll", function() {
+
+        var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+        var clientHeight = document.documentElement.clientHeight || document.body.clientHeight;
+        var scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight;
+
+        if(!that.isexplain || !that.issource) return;
+        that.scrollShow = scrollTop > 750;
+        if(scrollHeight > clientHeight && scrollTop + clientHeight + 20 >= scrollHeight) {
+          if(that.loadmsg && !that.sigclick) {
+            that.loadmsg = false;
+            that.sigclick = false;
+            that.ajaxFristOrderItems();
+          }
+        }
+      });
+    },
+    ajaxFristOrderItems: function(cb) {
+      var that = this;
+      if(that.sigclick) {
+        if(this.fristOrderItems[0]) {
+          this.fristOrderItems.forEach(function(item) {
+            item.itempic = "";
+          });
+        }
+        document.documentElement.scrollTop = that.outerHeight;
+        document.body.scrollTop = that.outerHeight;
+      }
+      $.ajax({
+        type: "Get",
+        url: "https://v2.api.haodanku.com/sign_red_pack_goods",
+        data: {
+          min_size: 20,
+          sort: that.sortId,
+          min_id: that.page,
+          keyword: that.keyword,
+          apikey: 'zqapi', //必填
+        },
+        dataType: "json",
+        timeout: 5000,
+        success: function(data) {
+          if(data.code == "200") {
+            that.help_info = data.help_info || [];
+            that.sign_info = data.sign_info || {};
+            if(that.sigclick) {
+              that.fristOrderItems = data.data;
+            } else {
+              that.fristOrderItems = that.fristOrderItems.concat(data.data);
+            }
+            that.topArr = data.top_data;
+            if(that.page != data.min_id) {
+              that.loadmsg = true;
+              that.loadshow = true;
+              that.page = data.min_id;
+            } else {
+              that.loadmsg = false;
+              that.loadshow = false;
+            }
+            that.$nextTick(function() {
+              that.sigclick = false;
+              if(cb) {
+                $(".newtop").scrollToFixed();
+              }
+
+            });
+          } else {
+            that.loadmsg = false;
+            that.loadshow = false;
+            that.sigclick = false;
+            layer.msg(data.msg, {
+              time: 2000,
+              shade: 0.1,
+              shadeClose: true
+            });
+          }
+
+        },
+        error: function() {
+          that.msgFun("网络错误，请检查网络重试");
+        }
+      });
+    },
+    handleSort: function(item) {
+      if(this.sortNumber == item.number) {
+        if(item.min === item.max) {
+          return;
+        }
+        if(item.bool) {
+          this.sortId = item.min;
+          item.bool = false;
+        } else {
+          this.sortId = item.max;
+          item.bool = true;
+        }
+      } else {
+        item.bool = true;
+        this.sortNumber = item.number;
+        this.sortId = item.max;
+      }
+      this.page = 1;
+      this.loadmsg = true;
+      this.loadshow = true;
+      this.sigclick = true;
+      this.ajaxFristOrderItems();
+    },
+    popupFun: function(classname) {
+      layer.open({
+        type: 1,
+        shift: 0,
+        title: false,
+        closeBtn: 0,
+        shade: 0.4,
+        shadeClose: true,
+        content: $(classname)
+      });
+    },
+    getTaocode: function(item, isCoupon) {
+      var that = this;
+      var load = layer.load(1, {shade: 0.3});
+      $.ajax({
+        type: "Post",
+        url: "https://tkf.ink/signin_ratesurl/",
+        data: {
+          yid: yid,
+          itemid: item.itemid,
+		  itemtitle: item.itemtitle,
+          activityid: isCoupon ? item.activityid : undefined,
+        },
+        dataType: "json",
+        timeout: 5000,
+        success: function(data) {
+          layer.close(load);
+          if(data.code) {
+			that.taoToken = data.data.tao_code;
+            if(isCoupon) {
+              that.popupFun(".tokenbox1");
+            } else {
+              that.openSnappedUpDialog();
+            }
+          } else {
+            that.msgFun(data.msg);
+          }
+
+        },
+        error: function() {
+          layer.close(load);
+          that.msgFun("网络错误，请检查网络重试");
+        }
+      });
+    },
+    msgFun: function(val) {
+      layer.msg(val, {
+        time: 2000,
+        shade: 0.1,
+        shadeClose: true
+      });
+    },
+    arrowTop: function() {
+      $("body,html").stop(true, true).animate({
+        scrollTop: 0
+      });
+    },
+    copyBtn: function(dom) { //复制公共方法
+      var that = this;
+      var clipboard = new ClipboardJS(dom, {
+        text: function(target) {
+          return that.taoToken;
+        }
+      });
+      clipboard.on("success", function(e) {
+        layer.closeAll();
+        that.msgFun(that.snappedUp.show ? "下单链接复制成功，请打开手淘APP搜索下单" : "复制口令成功,请打开淘宝领取");
+        e.clearSelection();
+        clipboard.destroy();
+      });
+      clipboard.on("error", function(e) {
+        layer.msg("复制口令失败,请手动复制", {
+          shade: 0.4,
+          time: 1000,
+          shadeClose: false
+        }, function() {
+        });
+
+      });
+    },
+    copyShare: function() { //复制公共方法
+      var that = this;
+
+      var txt = that.locationUrl;
+
+      var clipboard = new ClipboardJS(".share-btn", {
+        text: function(target) {
+          return txt;
+        }
+      });
+      clipboard.on("success", function(e) {
+        that.msgFun("已复制分享链接");
+        console.log(txt);
+        e.clearSelection();
+        clipboard.destroy();
+      });
+      clipboard.on("error", function(e) {
+        layer.msg("复制分享链接失败！", {
+          shade: 0.4,
+          time: 1000,
+          shadeClose: false
+        }, function() {
+        });
+
+      });
+    },
+    handleSearch: function() {
+      this.page = 1;
+      this.loadmsg = true;
+      this.loadshow = true;
+      this.sigclick = true;
+      this.ajaxFristOrderItems();
+    },
+    shutBtn: function() {
+      layer.closeAll();
+    },
+    playBtn: function() {
+      this.playState = true;
+    },
+    myfocus: function() {
+      this.acFocus = true;
+    },
+    myblur: function() {
+      this.acFocus = false;
+    },
+    openDirect: function() {
+      this.showDirect = true;
+    },
+    closeDirect: function() {
+      this.showDirect = false;
+    },
+    openSnappedUpDialog: function() {
+      this.snappedUp.show = true;
+    },
+    closeSnappedUpDialog: function() {
+      this.snappedUp.show = false;
+    }
+  },
+  watch: {}
+});
+</script>
+</body>
+
+</html>

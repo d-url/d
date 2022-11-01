@@ -1,0 +1,268 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title></title>
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no">
+		<meta name="referrer" content="no-referrer" />
+		<link rel="stylesheet" href="https://unpkg.com/buijs/lib/latest/bui.css">
+		<script src="https://unpkg.com/buijs/lib/zepto.js"></script>
+		<script src="https://unpkg.com/buijs/lib/latest/bui.js"></script>
+		<script src="https://cdn.bootcdn.net/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+		<script src="https://unpkg.com/clipboard/dist/clipboard.min.js"></script>
+		<style>
+		html, body {
+			background: #f3f3f3;
+			color: #000000;
+		}
+		.list-photo .bui-btn {
+			margin: 10px 10px 0 10px;
+			border-radius: 5px;
+		}
+		.bui-tab .bui-nav .active {
+			color: #f44336;
+		}
+		.bui-nav>[class*=bui-btn].active:after{
+			background: #f44336;
+		}
+	.list-photo {
+        border-top: 0;
+    }
+    .list-photo .bui-btn {
+        padding: .1rem .2rem;
+    }
+    .list-photo .photo-title {
+        line-height: 1.5;
+        margin-bottom: .1rem;
+        color: #333;
+        /*超出两行截取*/
+        overflow: hidden;
+        display: -webkit-box;
+        display: box;
+        text-overflow: ellipsis;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+    }
+    .list-photo .bui-box-space{
+        margin-left: -.2rem;
+        margin-right: -.2rem;
+        width: auto;
+    }
+    .list-photo .photo-title {
+        margin: .1rem 0;
+    }
+    .list-photo .photo-item {
+        margin: .1rem 0;
+		max-width: 600px;
+    }
+    .list-photo .photo-item img{
+        width: 100%;
+    }
+    .list-photo .photo-desc {
+        margin: .1rem 0;
+        text-align: left;
+    }
+	.hide {
+		display: none
+	}
+	.activity {
+		color: #ff0000 !important;
+		font-weight: 600;
+	}
+	.bui-dialog-head {
+		background: #FF9800;
+		color: white;
+	}
+	.bui-dialog-main {
+		padding: .3rem;
+	}
+		</style>
+	</head>
+	<body>
+	<div class="bui-page bui-box-vertical">
+    <main>
+
+        <div id="uiTab" class="bui-tab bui-box-vertical">
+            <div class="bui-tab-head">
+                <ul class="bui-nav">
+                    <li class="bui-btn">淘宝</li>
+                    <li class="bui-btn">京东</li>
+                    <li class="bui-btn">其他</li>
+                </ul>
+            </div>
+            <div class="bui-tab-main">
+                <ul>
+                    <!-- 内容必须在li里面 -->
+                    <li style="display: none;" >
+						<ul class="bui-list list-photo tb"></ul>
+					</li>
+                    <li style="display: none;" >
+						<ul class="bui-list list-photo jd"></ul>
+					</li>
+                    <li style="display: none;" >
+						<ul class="bui-list list-photo other"></ul>
+					</li>
+                </ul>
+            </div>
+        </div>
+		
+		<!-- 中间自定义弹出框结构	 -->
+		<div id="dialogCenter" class="bui-dialog" style="display: none;">
+			<div class="bui-dialog-head">系统消息</div>
+			<div class="bui-dialog-main alertmsg">	
+			</div>
+			<div class="bui-dialog-close"><i class="icon-close"></i></div>
+		</div>
+		<div id="dialogCenter2" class="bui-dialog" style="display: none;">
+			<div class="bui-dialog-main">
+				<div class="restkl" style="margin: .5rem;"></div>
+				<div class="bui-btn warning copybtn">复制淘口令</div>
+			</div>
+		</div>
+    </main>
+	</div>
+<script>
+
+bui.ready(function(){
+	var yid
+	bui.getPageParams(function(res){
+		var urlparam = res;
+		yid = urlparam.yid
+	});
+    var uiTab = bui.tab({
+        id: "#uiTab"
+    });
+	var uiDialog = bui.dialog({
+        id: "#dialogCenter",
+        height: 300
+    });
+	var uiDialog2 = bui.dialog({
+        id: "#dialogCenter2",
+		width: 300
+    });
+	var clipboard = new ClipboardJS('.copybtn', {
+		text: function(target) {
+			return restkl;
+		}
+	});
+	clipboard.on('success', function(e) {
+		uiDialog2.close();
+		e.clearSelection();
+		bui.hint({
+			content: "淘口令已复制，打开手机淘宝即可",
+			width: "80%",
+			position: "center",
+			effect: "fadeInDown"
+		});
+	});
+	var surl = "https://tkf.ink"
+	$(".bui-list").on("click", ".list", function() {
+		var wurl = $(this).attr("wurl")
+		if(/^\d+$/.test(wurl)){
+			$.ajax({
+				url: surl+"/activity_ratesurl/",
+				data: {"activity_id":wurl,"yid":yid},
+				method: "GET",
+				dataType:'json',
+				success: function(res){
+					if(res.ok){
+						restkl = res.data.tao_code
+						$(".restkl").text(restkl)
+						uiDialog2.open();
+					}else if(res.msg){
+						bui.hint({
+							content: res.msg,
+							position: "center",
+							effect: "fadeInDown"
+						});
+					}
+				}
+			})
+			return;
+		}
+		if(wurl.indexOf("jd.com") != -1){
+			$.ajax({
+				url: surl+"/get_jditems_link/",
+				data: {"material_id":wurl,"yid":yid},
+				method: "GET",
+				dataType:'json',
+				success: function(res){
+					if(res.data){
+						window.location.href = res.data.short_url
+					}else if(res.msg){
+						bui.hint({
+							content: res.msg,
+							position: "center",
+							effect: "fadeInDown"
+						});
+					}
+				}
+			})
+			return;
+		}
+		if(wurl.length > 0){
+			var fh = "?"
+			if(wurl.indexOf("?") != -1) fh = "&"
+			window.location.href = wurl + fh + "back=1&yid=" + yid
+		}
+	})
+	$.ajax({
+		url: surl+"/appdata/",
+		data: {"type":"getinfo","yid":yid},
+		method: "GET",
+		dataType:'json',
+		success: function(res){
+			if(res.ok){
+				$.each(res.list, function(idx, obj) {
+					var html = `<li class="bui-btn list" wurl="{wurl}">
+								<div class="bui-box-space">
+									<div class="span1">
+										<div class="photo-item">
+											<img src="{img}" class="{hide}">
+										</div>
+										<div class="photo-info">
+											<h3 class="photo-title {activity}">{title}</h3>
+											<div class="photo-desc">
+												<span class="time">{content}</span>
+											</div>
+										</div>
+									</div>
+								</div>
+							</li>`
+					var hide = ""
+					if(!obj.pic || obj.pic.length < 1){hide = "hide"}
+					var activity = ""
+					if(obj.activity){activity = "activity"}
+					html = html.replace("{title}", obj.title)
+					html = html.replace("{content}", obj.content)
+					html = html.replace("{hide}", hide)
+					html = html.replace("{img}", obj.pic||"")
+					html = html.replace("{wurl}", obj.wurl||obj.url||"")
+					html = html.replace("{activity}", activity)
+					if(obj.type == "tb"){
+						$(".tb").append(html)
+					}else if(obj.type == "jd"){
+						$(".jd").append(html)
+					}else{
+						$(".other").append(html)
+					}
+				})
+				if(res.alertmsg) {
+					if($.cookie("alertmsg") != "1"){
+						$.cookie('alertmsg','1',{expires:1});
+						$(".alertmsg").html(res.alertmsg)
+						uiDialog.open();
+					}
+				}
+				document.title = res.title
+			}
+		}
+	})
+
+	
+	
+	
+})
+</script>
+</body>
+</html>
